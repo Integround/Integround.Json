@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Integround.Json", "Integround.Json\Integround.Json.csproj", "{4B2915E9-5E85-424F-84B3-F3F4F0344FB1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Integround.Json.Tests", "Integround.Json.Tests\Integround.Json.Tests.csproj", "{E6488CF2-F36B-4A03-8974-CD17B57BCBB0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4B2915E9-5E85-424F-84B3-F3F4F0344FB1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B2915E9-5E85-424F-84B3-F3F4F0344FB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B2915E9-5E85-424F-84B3-F3F4F0344FB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B2915E9-5E85-424F-84B3-F3F4F0344FB1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E6488CF2-F36B-4A03-8974-CD17B57BCBB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E6488CF2-F36B-4A03-8974-CD17B57BCBB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E6488CF2-F36B-4A03-8974-CD17B57BCBB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E6488CF2-F36B-4A03-8974-CD17B57BCBB0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
