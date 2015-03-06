@@ -1,4 +1,5 @@
-﻿using System.Xml;
+﻿using System;
+using System.Xml;
 using Xunit;
 using Xunit.Extensions;
 
@@ -122,6 +123,26 @@ namespace Integround.Json.Tests
             var xml = JsonConverter.ConvertToXml(input);
 
             Assert.Equal(expected, xml.InnerXml);
+        }
+
+        
+        // Test invalid input:
+        [Theory,
+            InlineData(
+            "{",
+            "Invalid JSON. Expecting '\"', found EOF."),
+        ]
+        public void TestJsonToXmlError(string input, string expectedError)
+        {
+            try
+            {
+                JsonConverter.ConvertToXml(input);
+                Assert.True(false, "JsonToXml should throw an exception.");
+            }
+            catch (Exception ex)
+            {
+                Assert.Equal(expectedError, ex.Message); 
+            }
         }
     }
 }

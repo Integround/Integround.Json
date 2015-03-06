@@ -53,12 +53,15 @@ namespace Integround.Json
             return nextChar;
         }
 
-        private static char ReadNextChar(TextReader reader)
+        private static int ReadNextChar(TextReader reader)
         {
-            char nextChar;
-            while (char.IsWhiteSpace(nextChar = (char)reader.Read()))
+            var nextChar = reader.Read();
+
+            // Read characters until a non-whitespace character is found or
+            // the end of file if detected: 
+            while ((nextChar != -1) && char.IsWhiteSpace((char)nextChar))
             {
-                // Clear the white space   
+                nextChar = reader.Read();
             }
 
             return nextChar;
@@ -66,7 +69,14 @@ namespace Integround.Json
 
         private static char ReadChar(TextReader reader, char allowedChar)
         {
-            var nextChar = ReadNextChar(reader);
+            var nextCharValue = ReadNextChar(reader);
+
+            // Check if end of file was detected:
+            if (nextCharValue == -1)
+                throw new Exception(string.Format("Invalid JSON. Expecting '{0}', found EOF.", allowedChar));
+
+            // Otherwise convert to a char and handle it:
+            var nextChar = (char)nextCharValue;
             if (nextChar != allowedChar)
                 throw new Exception(string.Format("Invalid JSON. Expecting '{0}', found '{1}'.", allowedChar, nextChar));
 
@@ -75,7 +85,14 @@ namespace Integround.Json
 
         private static char ReadChar(TextReader reader, char[] allowedChar)
         {
-            var nextChar = ReadNextChar(reader);
+            var nextCharValue = ReadNextChar(reader);
+
+            // Check if end of file was detected:
+            if (nextCharValue == -1)
+                throw new Exception(string.Format("Invalid JSON. Expecting '{0}', found EOF.", allowedChar));
+
+            // Otherwise convert to a char and handle it:
+            var nextChar = (char)nextCharValue;
             if (!allowedChar.Contains(nextChar))
                 throw new Exception(string.Format("Invalid JSON. Expecting '{0}', found '{1}'.", string.Join(",", allowedChar), nextChar));
 
@@ -135,11 +152,11 @@ namespace Integround.Json
                     node.InnerText = value;
             }
         }
-        
+
         private static void ReadJsonObject(StringReader reader, XmlNode parent, XmlDocument xml, bool isRoot = false)
         {
             var nextChar = PeekNextChar(reader);
-            if(nextChar != '{' && nextChar != '[')
+            if (nextChar != '{' && nextChar != '[')
                 throw new Exception(string.Format("Invalid JSON. Expecting '{{' or '[', found '{0}'.", nextChar));
 
             // Check if the json starts with an array:
@@ -168,7 +185,7 @@ namespace Integround.Json
                     // Read the property name
                     // *********************************************
                     ReadChar(reader, '"');
-                    propertyName = ReadUntil(reader, new[] {'"'});
+                    propertyName = ReadUntil(reader, new[] { '"' });
                     ReadChar(reader, '"');
 
                     // *********************************************
@@ -201,7 +218,7 @@ namespace Integround.Json
                             parent.AppendChild(node);
 
                             // Read the array item separator:
-                            nextChar = ReadChar(reader, new[] {',', ']'});
+                            nextChar = ReadChar(reader, new[] { ',', ']' });
                             if (nextChar == ']')
                                 break;
                         }
