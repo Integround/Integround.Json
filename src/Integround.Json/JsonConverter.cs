@@ -42,24 +42,28 @@ namespace Integround.Json
 
         #region JSON -> XML helper methods
 
-        private static char PeekNextChar(TextReader reader)
+        private static int PeekNextChar(TextReader reader, bool ignoreWhiteSpace = true)
         {
-            char nextChar;
-            while (char.IsWhiteSpace(nextChar = (char)reader.Peek()))
+            var nextChar = reader.Peek();
+
+            // Read & ignore characters until a non-whitespace character is found 
+            // or the end of file if detected: 
+            while (ignoreWhiteSpace && (nextChar != -1) && char.IsWhiteSpace((char)nextChar))
             {
-                // Clear the white space   
                 reader.Read();
+                nextChar = reader.Peek();
             }
+
             return nextChar;
         }
 
-        private static int ReadNextChar(TextReader reader)
+        private static int ReadNextChar(TextReader reader, bool ignoreWhiteSpace = false)
         {
             var nextChar = reader.Read();
 
-            // Read characters until a non-whitespace character is found or
-            // the end of file if detected: 
-            while ((nextChar != -1) && char.IsWhiteSpace((char)nextChar))
+            // Read characters until a non-whitespace character is found
+            // or the end of file if detected: 
+            while (ignoreWhiteSpace && (nextChar != -1) && char.IsWhiteSpace((char)nextChar))
             {
                 nextChar = reader.Read();
             }
@@ -67,62 +71,109 @@ namespace Integround.Json
             return nextChar;
         }
 
-        private static char ReadChar(TextReader reader, char allowedChar)
+        private static char ReadChar(TextReader reader, char allowedChar, bool ignoreWhiteSpace = true)
         {
-            var nextCharValue = ReadNextChar(reader);
+            return ReadChar(reader, new[] { allowedChar }, ignoreWhiteSpace);
+        }
+
+        private static char ReadChar(TextReader reader, char[] allowedChars, bool ignoreWhiteSpace = true)
+        {
+            var nextCharValue = ReadNextChar(reader, ignoreWhiteSpace);
+            var allowedCharsString = string.Join(", ", allowedChars.Select(d => string.Format("'{0}'", d)));
 
             // Check if end of file was detected:
             if (nextCharValue == -1)
-                throw new Exception(string.Format("Invalid JSON. Expecting '{0}', found EOF.", allowedChar));
-
-            // Otherwise convert to a char and handle it:
-            var nextChar = (char)nextCharValue;
-            if (nextChar != allowedChar)
-                throw new Exception(string.Format("Invalid JSON. Expecting '{0}', found '{1}'.", allowedChar, nextChar));
-
-            return nextChar;
-        }
-
-        private static char ReadChar(TextReader reader, char[] allowedChar)
-        {
-            var nextCharValue = ReadNextChar(reader);
-
-            // Check if end of file was detected:
-            if (nextCharValue == -1)
-                throw new Exception(string.Format("Invalid JSON. Expecting '{0}', found EOF.", allowedChar));
-
-            // Otherwise convert to a char and handle it:
-            var nextChar = (char)nextCharValue;
-            if (!allowedChar.Contains(nextChar))
-                throw new Exception(string.Format("Invalid JSON. Expecting '{0}', found '{1}'.", string.Join(",", allowedChar), nextChar));
-
-            return nextChar;
-        }
-
-        private static string ReadUntil(TextReader reader, char[] delimiters)
-        {
-            var str = "";
-            char readChar;
-
-            while (char.IsWhiteSpace(readChar = (char)reader.Peek()))
             {
-                // Clear the white space 
-                reader.Read();
+                throw new Exception(string.Format("Invalid JSON. Expected characters: {0}, found EOF.",
+                    allowedCharsString));
             }
 
-            // Read the string before the delimiter char:
-            while (!delimiters.Contains(readChar))
+            // Otherwise convert to a char and handle it:
+            var nextChar = (char)nextCharValue;
+            if (!allowedChars.Contains(nextChar))
+            {
+                throw new Exception(string.Format("Invalid JSON. Expected characters: {0}, found '{1}'.",
+                    allowedCharsString, nextChar));
+            }
+
+            return nextChar;
+        }
+
+        private static string ReadString(TextReader reader)
+        {
+            var str = "";
+            var nextCharValue = PeekNextChar(reader, false);
+
+            // Read characters until a ending quote or EOF is found:
+            while ((nextCharValue != -1) && (nextCharValue != '"'))
             {
                 str += (char)reader.Read();
-                readChar = (char)reader.Peek();
+                nextCharValue = reader.Peek();
+            }
+
+            // Check if end of file was detected:
+            if (nextCharValue == -1)
+            {
+                throw new Exception("Invalid JSON. Unexpected EOF was detected. Expected '\"'.");
             }
 
             return str;
         }
 
-        private static void ReadSingleElement(StringReader reader, XmlNode node, XmlDocument xml)
+        private static string ReadValue(TextReader reader, char[] delimiters)
+        {
+            var str = "";
+            var nextCharValue = PeekNextChar(reader);
+
+            // Read characters until an expected delimiter or EOF is found:
+            while ((nextCharValue != -1) &&
+                !char.IsWhiteSpace((char)nextCharValue) &&
+                !delimiters.Contains((char)nextCharValue))
+            {
+                str += (char)reader.Read();
+
+                // If a boolean or null value was found, stop reading any further.
+                // This check should only be made if the lengths match, not after every character.
+                if ((str.Length == bool.TrueString.Length) ||
+                    (str.Length == bool.FalseString.Length) ||
+                    (str.Length == FormatAttributes.NullValue.Length))
+                {
+                    if (string.Equals(str, bool.TrueString, StringComparison.InvariantCultureIgnoreCase) ||
+                        string.Equals(str, bool.FalseString, StringComparison.InvariantCultureIgnoreCase) ||
+                        string.Equals(str, FormatAttributes.NullValue, StringComparison.InvariantCultureIgnoreCase))
+                        break;
+                }
+
+                nextCharValue = reader.Peek();
+            }
+
+            // Check if end of file was detected.
+            // If the value was numeric, the error is not raised here but from the missing delimiter.
+            float numericValue;
+            if (nextCharValue == -1 && !float.TryParse(str, out numericValue))
+            {
+                throw new Exception("Invalid JSON. Unexpected EOF detected. Expected a boolean, numeric or null value.");
+            }
+
+            if (!string.Equals(str, bool.TrueString, StringComparison.InvariantCultureIgnoreCase) &&
+                !string.Equals(str, bool.FalseString, StringComparison.InvariantCultureIgnoreCase) &&
+                !string.Equals(str, FormatAttributes.NullValue, StringComparison.InvariantCultureIgnoreCase) &&
+                !float.TryParse(str, out numericValue))
+            {
+                throw new Exception(string.Format("Invalid JSON. Expected a boolean, numeric or null value, found '{0}'.", str));
+            }
+
+            return str;
+        }
+
+        private static void ReadSingleElement(StringReader reader, XmlNode node, XmlDocument xml, char[] delimiters)
         {
             var nextChar = PeekNextChar(reader);
+            if (nextChar == -1)
+            {
+                throw new Exception("Invalid JSON. Unexpected EOF was detected.");
+            }
+
             if (nextChar == '{')
             {
                 // Another object
@@ -138,14 +189,14 @@ namespace Integround.Json
                 // Read the starting quote character:
                 ReadChar(reader, '"');
                 // Read the string value:
-                node.InnerText = ReadUntil(reader, new[] { '"' }).TrimEnd();
+                node.InnerText = ReadString(reader);
                 // Read the ending quote:
                 ReadChar(reader, '"');
             }
             else
             {
                 // Read the null, number or boolean value:
-                var value = ReadUntil(reader, new[] { ',', ']', '}' }).TrimEnd();
+                var value = ReadValue(reader, delimiters);
 
                 // Null values are not added to XML:
                 if (!string.Equals(value, FormatAttributes.NullValue, StringComparison.InvariantCultureIgnoreCase))
@@ -157,7 +208,9 @@ namespace Integround.Json
         {
             var nextChar = PeekNextChar(reader);
             if (nextChar != '{' && nextChar != '[')
-                throw new Exception(string.Format("Invalid JSON. Expecting '{{' or '[', found '{0}'.", nextChar));
+            {
+                throw new Exception(string.Format("Invalid JSON. Expecting '{{' or '[', found '{0}'.", (char)nextChar));
+            }
 
             // Check if the json starts with an array:
             var isArray = isRoot && nextChar == '[';
@@ -185,7 +238,17 @@ namespace Integround.Json
                     // Read the property name
                     // *********************************************
                     ReadChar(reader, '"');
-                    propertyName = ReadUntil(reader, new[] { '"' });
+                    propertyName = ReadString(reader);
+
+                    if (string.IsNullOrWhiteSpace(propertyName))
+                    {
+                        throw new Exception("Invalid JSON. Property name cannot be empty.");
+                    }
+                    if (propertyName.Any(Char.IsWhiteSpace))
+                    {
+                        throw new Exception(string.Format("Invalid JSON. Property name cannot contain whitespace ('{0}').", propertyName));
+                    }
+
                     ReadChar(reader, '"');
 
                     // *********************************************
@@ -210,15 +273,16 @@ namespace Integround.Json
                     }
                     else
                     {
+                        var arrayDelimiters = new[] { ',', ']' };
                         // Read the array items:
                         while (true)
                         {
                             var node = xml.CreateElement(propertyName);
-                            ReadSingleElement(reader, node, xml);
+                            ReadSingleElement(reader, node, xml, arrayDelimiters);
                             parent.AppendChild(node);
 
                             // Read the array item separator:
-                            nextChar = ReadChar(reader, new[] { ',', ']' });
+                            nextChar = ReadChar(reader, arrayDelimiters);
                             if (nextChar == ']')
                                 break;
                         }
@@ -234,7 +298,7 @@ namespace Integround.Json
                         node = xml.CreateElement(propertyName);
 
                     // Read the contents:
-                    ReadSingleElement(reader, node, xml);
+                    ReadSingleElement(reader, node, xml, new[] { ',', '}' });
 
                     // Add the xml node:
                     if (node.NodeType == XmlNodeType.Attribute)

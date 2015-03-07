@@ -81,11 +81,14 @@ namespace Integround.Json.Tests
             "{}",
             "<Json />"),
         InlineData(
-            "{\"Root\":\"Contents\"}",
-            "<Json><Root>Contents</Root></Json>"),
+            "  {  }  ",
+            "<Json />"),
         InlineData(
             "{\"Root\":\"Contents\"}",
             "<Json><Root>Contents</Root></Json>"),
+        InlineData(
+            " { \"Root\" : \"  Contents  Contents  \" } ",
+            "<Json><Root>  Contents  Contents  </Root></Json>"),
         InlineData(
             "{\"Element1\":\"string\",\"Element2\":23,\"Element3\":{},\"Element4\":true}",
             "<Json><Element1>string</Element1><Element2>23</Element2><Element3 /><Element4>true</Element4></Json>"),
@@ -103,7 +106,13 @@ namespace Integround.Json.Tests
             "[]",
             "<Json />"),
         InlineData(
+            "  [  ]  ",
+            "<Json />"),
+        InlineData(
             "{\"Prop\":[\"10\",\"20\",\"30\"]}",
+            "<Json><Prop>10</Prop><Prop>20</Prop><Prop>30</Prop></Json>"),
+        InlineData(
+            " { \"Prop\" : [ \"10\" , \"20\" , \"30\" ] } ",
             "<Json><Prop>10</Prop><Prop>20</Prop><Prop>30</Prop></Json>"),
         InlineData(
             "{\"Prop\":[{},\"10\",{},{}]}",
@@ -125,12 +134,84 @@ namespace Integround.Json.Tests
             Assert.Equal(expected, xml.InnerXml);
         }
 
-        
-        // Test invalid input:
+
         [Theory,
-            InlineData(
+        InlineData(
+            "abc",
+            "Invalid JSON. Expecting '{' or '[', found 'a'."),
+
+        // Test invalid objects:
+        InlineData(
             "{",
-            "Invalid JSON. Expecting '\"', found EOF."),
+            "Invalid JSON. Expected characters: '\"', found EOF."),
+        InlineData(
+            "{ ab",
+            "Invalid JSON. Expected characters: '\"', found 'a'."),
+        InlineData(
+            "{\"dfg",
+            "Invalid JSON. Unexpected EOF was detected. Expected '\"'."),
+        InlineData(
+            "{\"\"",
+            "Invalid JSON. Property name cannot be empty."),
+        InlineData(
+            "{\"prop\"",
+            "Invalid JSON. Expected characters: ':', found EOF."),
+        InlineData(
+            "{\"prop\":",
+            "Invalid JSON. Unexpected EOF was detected."),
+        InlineData(
+            "{\"prop\":,",
+            "Invalid JSON. Expected a boolean, numeric or null value, found ''."),
+        InlineData(
+            "{\"prop\":}",
+            "Invalid JSON. Expected a boolean, numeric or null value, found ''."),
+        InlineData(
+            "{\"prop\":]",
+            "Invalid JSON. Unexpected EOF detected. Expected a boolean, numeric or null value."),
+        InlineData(
+            "{\"prop\":true]",
+            "Invalid JSON. Expected characters: ',', '}', found ']'."),
+        InlineData(
+            "{\"prop\": a",
+            "Invalid JSON. Unexpected EOF detected. Expected a boolean, numeric or null value."),
+        InlineData(
+            "{\"prop\": 123.4",
+            "Invalid JSON. Unexpected EOF detected. Expected a boolean, numeric or null value."),
+        InlineData(
+            "{\"prop\": abc}",
+            "Invalid JSON. Expected a boolean, numeric or null value, found 'abc'."),
+        InlineData(
+            "{\"pr operty \": true}",
+            "Invalid JSON. Property name cannot contain whitespace ('pr operty ')."),
+
+        // Test invalid arrays:
+        InlineData(
+            "[",
+            "Invalid JSON. Unexpected EOF was detected."),
+        InlineData(
+            "[ abc",
+            "Invalid JSON. Unexpected EOF detected. Expected a boolean, numeric or null value."),
+        InlineData(
+            "[ true",
+            "Invalid JSON. Expected characters: ',', ']', found EOF."),
+        InlineData(
+            "[ \"\"",
+            "Invalid JSON. Expected characters: ',', ']', found EOF."),
+        InlineData(
+            "[ 12",
+            "Invalid JSON. Expected characters: ',', ']', found EOF."),
+        InlineData(
+            "[ 12 45",
+            "Invalid JSON. Expected characters: ',', ']', found '4'."),
+        InlineData(
+            "[ 12. 45",
+            "Invalid JSON. Expected a boolean, numeric or null value, found '12.'."),
+        InlineData(
+            "[ \"",
+            "Invalid JSON. Unexpected EOF was detected. Expected '\"'."),
+        InlineData(
+            "[   {   ",
+            "Invalid JSON. Expected characters: '\"', found EOF.")
         ]
         public void TestJsonToXmlError(string input, string expectedError)
         {
@@ -141,7 +222,7 @@ namespace Integround.Json.Tests
             }
             catch (Exception ex)
             {
-                Assert.Equal(expectedError, ex.Message); 
+                Assert.Equal(expectedError, ex.Message);
             }
         }
     }
