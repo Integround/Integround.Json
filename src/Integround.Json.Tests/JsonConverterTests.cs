@@ -91,7 +91,7 @@ namespace Integround.Json.Tests
             "<Json><Root>  Contents  Contents  </Root></Json>"),
         InlineData(
             "{\"Element1\":\"string\",\"Element2\":23,\"Element3\":{},\"Element4\":true}",
-            "<Json><Element1>string</Element1><Element2>23</Element2><Element3 /><Element4>true</Element4></Json>"),
+            "<Json xmlns:json=\"http://www.integround.com/json\"><Element1>string</Element1><Element2 json:DataType=\"Number\">23</Element2><Element3 /><Element4 json:DataType=\"Boolean\">true</Element4></Json>"),
         InlineData(
             "{\"Element1\":\"\",\"Element2\":null}",
             "<Json><Element1></Element1><Element2 /></Json>"),
@@ -119,10 +119,10 @@ namespace Integround.Json.Tests
             "<Json><Prop /><Prop>10</Prop><Prop /><Prop /></Json>"),
         InlineData(
             "{\"Prop\":[[],\"10\",[10,20,null],[]]}",
-            "<Json><Prop /><Prop>10</Prop><Prop><Value>10</Value><Value>20</Value><Value /></Prop><Prop /></Json>"),
+            "<Json xmlns:json=\"http://www.integround.com/json\"><Prop /><Prop>10</Prop><Prop><Value json:DataType=\"Number\">10</Value><Value json:DataType=\"Number\">20</Value><Value /></Prop><Prop /></Json>"),
         InlineData(
             "{\"Prop\":[{\"Element\":\"Contents\"},\"20\",30,true]}",
-            "<Json><Prop><Element>Contents</Element></Prop><Prop>20</Prop><Prop>30</Prop><Prop>true</Prop></Json>"),
+            "<Json xmlns:json=\"http://www.integround.com/json\"><Prop><Element>Contents</Element></Prop><Prop>20</Prop><Prop json:DataType=\"Number\">30</Prop><Prop json:DataType=\"Boolean\">true</Prop></Json>"),
         InlineData(
             "[{\"Element\":\"Contents\"},{\"Element2\":\"Contents2\"}]",
             "<Json><Value><Element>Contents</Element></Value><Value><Element2>Contents2</Element2></Value></Json>")

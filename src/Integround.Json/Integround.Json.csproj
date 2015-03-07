@@ -39,7 +39,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Enums\JsonElementType.cs" />
     <Compile Include="JsonConverter.cs" />
+    <Compile Include="Models\JsonElementFormatAttributes.cs" />
+    <Compile Include="Models\JsonElementValue.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

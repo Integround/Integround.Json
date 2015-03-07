@@ -4,22 +4,13 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml;
+using Integround.Json.Enums;
+using Integround.Json.Models;
 
 namespace Integround.Json
 {
     public class JsonConverter
     {
-        protected class FormatAttributes
-        {
-            public const string Namespace = "http://www.integround.com/json";
-            public const string NullValue = "null";
-            public const string Nullable = "Nullable";
-            public const string DataType = "DataType";
-            public const string DataTypeArray = "Array";
-            public const string DataTypeNumber = "Number";
-            public const string DataTypeBoolean = "Boolean";
-        }
-
         public static string ConvertFromXml(XmlElement xml)
         {
             var stringBuilder = new StringBuilder();
@@ -120,9 +111,10 @@ namespace Integround.Json
             return str;
         }
 
-        private static string ReadValue(TextReader reader, char[] delimiters)
+        private static JsonElementValue ReadValue(TextReader reader, char[] delimiters)
         {
-            var str = "";
+            var value = new JsonElementValue();
+            var valueString = string.Empty;
             var nextCharValue = PeekNextChar(reader);
 
             // Read characters until an expected delimiter or EOF is found:
@@ -130,40 +122,58 @@ namespace Integround.Json
                 !char.IsWhiteSpace((char)nextCharValue) &&
                 !delimiters.Contains((char)nextCharValue))
             {
-                str += (char)reader.Read();
+                valueString += (char)reader.Read();
 
                 // If a boolean or null value was found, stop reading any further.
                 // This check should only be made if the lengths match, not after every character.
-                if ((str.Length == bool.TrueString.Length) ||
-                    (str.Length == bool.FalseString.Length) ||
-                    (str.Length == FormatAttributes.NullValue.Length))
+                if ((valueString.Length == bool.TrueString.Length) ||
+                    (valueString.Length == bool.FalseString.Length) ||
+                    (valueString.Length == JsonElementFormatAttributes.NullValue.Length))
                 {
-                    if (string.Equals(str, bool.TrueString, StringComparison.InvariantCultureIgnoreCase) ||
-                        string.Equals(str, bool.FalseString, StringComparison.InvariantCultureIgnoreCase) ||
-                        string.Equals(str, FormatAttributes.NullValue, StringComparison.InvariantCultureIgnoreCase))
+                    // If the string is a boolean value:
+                    if (string.Equals(valueString, bool.TrueString, StringComparison.InvariantCultureIgnoreCase) ||
+                        string.Equals(valueString, bool.FalseString, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        value.Value = valueString;
+                        value.Type = JsonElementType.Boolean;
                         break;
+                    }
+
+                    // If the string is null:
+                    if (string.Equals(valueString, JsonElementFormatAttributes.NullValue, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        value.Value = valueString;
+                        value.Type = JsonElementType.Null;
+                        break;
+                    }
                 }
 
                 nextCharValue = reader.Peek();
             }
 
+            // Check if the string was numerical:
+            float numericValue;
+            if (float.TryParse(valueString, out numericValue))
+            {
+                value.Value = valueString;
+                value.Type = JsonElementType.Numeric;
+            }
+
             // Check if end of file was detected.
             // If the value was numeric, the error is not raised here but from the missing delimiter.
-            float numericValue;
-            if (nextCharValue == -1 && !float.TryParse(str, out numericValue))
+            if ((nextCharValue == -1) && (value.Type != JsonElementType.Numeric))
             {
                 throw new Exception("Invalid JSON. Unexpected EOF detected. Expected a boolean, numeric or null value.");
             }
 
-            if (!string.Equals(str, bool.TrueString, StringComparison.InvariantCultureIgnoreCase) &&
-                !string.Equals(str, bool.FalseString, StringComparison.InvariantCultureIgnoreCase) &&
-                !string.Equals(str, FormatAttributes.NullValue, StringComparison.InvariantCultureIgnoreCase) &&
-                !float.TryParse(str, out numericValue))
+            if ((value.Type != JsonElementType.Boolean) &&
+                (value.Type != JsonElementType.Null) &&
+                (value.Type != JsonElementType.Numeric))
             {
-                throw new Exception(string.Format("Invalid JSON. Expected a boolean, numeric or null value, found '{0}'.", str));
+                throw new Exception(string.Format("Invalid JSON. Expected a boolean, numeric or null value, found '{0}'.", valueString));
             }
 
-            return str;
+            return value;
         }
 
         private static void ReadSingleElement(StringReader reader, XmlNode node, XmlDocument xml, char[] delimiters)
@@ -195,12 +205,27 @@ namespace Integround.Json
             }
             else
             {
+
                 // Read the null, number or boolean value:
                 var value = ReadValue(reader, delimiters);
 
+                if ((value.Type == JsonElementType.Boolean) ||
+                    (value.Type == JsonElementType.Numeric))
+                {
+                    // Add the namespace declaration to the root element:
+                    xml.DocumentElement.SetAttribute(string.Format("xmlns:{0}", JsonElementFormatAttributes.Prefix), JsonElementFormatAttributes.Namespace);
+
+                    // Add the data type attribute:
+                    var attribute = xml.CreateAttribute(JsonElementFormatAttributes.Prefix, JsonElementFormatAttributes.DataType, JsonElementFormatAttributes.Namespace);
+                    attribute.Value = (value.Type == JsonElementType.Boolean)
+                        ? JsonElementFormatAttributes.DataTypeBoolean
+                        : JsonElementFormatAttributes.DataTypeNumber;
+                    node.Attributes.Append(attribute);
+                }
+
                 // Null values are not added to XML:
-                if (!string.Equals(value, FormatAttributes.NullValue, StringComparison.InvariantCultureIgnoreCase))
-                    node.InnerText = value;
+                if (value.Type != JsonElementType.Null)
+                    node.InnerText = value.Value;
             }
         }
 
@@ -335,13 +360,13 @@ namespace Integround.Json
 
             // Get the format attributes:
             var formatAttributes = attributes.Where(n =>
-                (n.NamespaceURI == FormatAttributes.Namespace)).ToList();
-            var dataType = formatAttributes.Where(a => a.LocalName == FormatAttributes.DataType).Select(a => a.Value).FirstOrDefault();
+                (n.NamespaceURI == JsonElementFormatAttributes.Namespace)).ToList();
+            var dataType = formatAttributes.Where(a => a.LocalName == JsonElementFormatAttributes.DataType).Select(a => a.Value).FirstOrDefault();
 
             // Get the data attributes & elements:
             var children = attributes.Where(n =>
-                (n.Value != FormatAttributes.Namespace) &&
-                (n.NamespaceURI != FormatAttributes.Namespace)).ToList();
+                (n.Value != JsonElementFormatAttributes.Namespace) &&
+                (n.NamespaceURI != JsonElementFormatAttributes.Namespace)).ToList();
             children.AddRange(node.ChildNodes.Cast<XmlNode>());
 
             // Omit the element name if this is an array item or the root object:
@@ -358,20 +383,20 @@ namespace Integround.Json
             if (!children.Any())
             {
                 var nullable =
-                    formatAttributes.Where(a => (a.LocalName == FormatAttributes.Nullable))
+                    formatAttributes.Where(a => (a.LocalName == JsonElementFormatAttributes.Nullable))
                         .Select(a => a.Value)
                         .FirstOrDefault();
 
                 // If json:Nullable != false (default = true), write the null value.
                 if (!string.Equals(nullable, "false", StringComparison.InvariantCultureIgnoreCase))
-                    stringBuilder.Append(FormatAttributes.NullValue);
+                    stringBuilder.Append(JsonElementFormatAttributes.NullValue);
 
                 // Else if the data type is not Number/Boolean, write just the quotes.
-                else if ((dataType != FormatAttributes.DataTypeNumber) && (dataType != FormatAttributes.DataTypeBoolean))
+                else if ((dataType != JsonElementFormatAttributes.DataTypeNumber) && (dataType != JsonElementFormatAttributes.DataTypeBoolean))
                     stringBuilder.Append("\"\"");
             }
             // If all child elements are forced to an array:
-            else if (dataType == FormatAttributes.DataTypeArray)
+            else if (dataType == JsonElementFormatAttributes.DataTypeArray)
             {
                 WriteJsonElements(children, dataType, contentStringBuilder, true);
                 stringBuilder.AppendFormat("[{0}]", contentStringBuilder);
@@ -408,8 +433,8 @@ namespace Integround.Json
                         break;
                     case XmlNodeType.Text:
 
-                        if ((dataType == FormatAttributes.DataTypeBoolean) ||
-                            (dataType == FormatAttributes.DataTypeNumber))
+                        if ((dataType == JsonElementFormatAttributes.DataTypeBoolean) ||
+                            (dataType == JsonElementFormatAttributes.DataTypeNumber))
                             stringBuilder.Append(children[i].InnerText);
                         else
                             stringBuilder.AppendFormat("\"{0}\"", children[i].InnerText);
