@@ -146,15 +146,15 @@ namespace Integround.Json
                             var hexValue = new char[4];
                             if (reader.Read(hexValue, 0, 4) != 4)
                             {
-                                throw new Exception("Invalid JSON. '\\u' should be followed by four hex digits. Unexpected EOF detected.");
+                                throw new Exception("Invalid JSON. Unexpected EOF detected. Expected '\\u' to be followed by four hex digits.");
                             }
-                            
+
                             // Convert the read hex string to an integer value:
                             var hexValueString = new string(hexValue);
                             int characterValue;
                             if (!Int32.TryParse(hexValueString, NumberStyles.HexNumber, null, out characterValue))
                             {
-                                throw new Exception(string.Format("Invalid JSON. '\\u' should be followed by four hex digits. Found '{0}'.", hexValueString));
+                                throw new Exception(string.Format("Invalid JSON. Expected '\\u' to be followed by four hex digits, found '{0}'.", hexValueString));
                             }
 
                             str.Append((char)characterValue);
@@ -380,9 +380,19 @@ namespace Integround.Json
                         // Read the array items:
                         while (true)
                         {
-                            var node = xml.CreateElement(propertyName);
+                            XmlNode node;
+                            try
+                            {
+                                // Create the XML node & add it to the document:
+                                node = xml.CreateElement(propertyName);
+                                parent.AppendChild(node);
+                            }
+                            catch (Exception ex)
+                            {
+                                throw new Exception(string.Format("Constructing the XML was unsuccessful: {0}", ex.Message));
+                            }
+
                             ReadSingleElement(reader, node, xml, arrayDelimiters);
-                            parent.AppendChild(node);
 
                             // Read the array item separator:
                             nextChar = ReadChar(reader, arrayDelimiters);
@@ -395,23 +405,27 @@ namespace Integround.Json
                 {
                     // Create a new xml node:
                     XmlNode node;
-                    if (propertyName.StartsWith("@"))
-                        node = xml.CreateAttribute(propertyName.Substring(1));
-                    else
-                        node = xml.CreateElement(propertyName);
+                    try
+                    {
+                        // Create the XML node & add it to the document:
+                        if (propertyName.StartsWith("@"))
+                        {
+                            node = xml.CreateAttribute(propertyName.Substring(1));
+                            parent.Attributes.Append((XmlAttribute) node);
+                        }
+                        else
+                        {
+                            node = xml.CreateElement(propertyName);
+                            parent.AppendChild(node);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception(string.Format("Constructing the XML was unsuccessful: {0}", ex.Message));
+                    }
 
-                    // Read the contents:
+                    // Read the node contents:
                     ReadSingleElement(reader, node, xml, new[] { ',', '}' });
-
-                    // Add the xml node:
-                    if (node.NodeType == XmlNodeType.Attribute)
-                    {
-                        parent.Attributes.Append((XmlAttribute)node);
-                    }
-                    else
-                    {
-                        parent.AppendChild(node);
-                    }
                 }
 
                 // *********************************************

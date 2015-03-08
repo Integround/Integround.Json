@@ -131,6 +131,11 @@ namespace Integround.Json.Tests
         InlineData(
             "{\"Prop\":[\"Content \\\"String\\\"\",\"Multiline\\nString\\tValue\",\"Others: \\b \\f \\r \\\\ \\/ \\u0054 \"]}",
             "<Json><Prop>Content \"String\"</Prop><Prop>Multiline\nString\tValue</Prop><Prop>Others: &#x8; &#xC; \r \\ / T </Prop></Json>"),
+        
+        // Test XML character escaping:
+        InlineData(
+            "{\"Root\":\"><&'\\\"\",\"@attribute\":\"><&'\\\"\"}",
+            "<Json attribute=\"&gt;&lt;&amp;'&quot;\"><Root>&gt;&lt;&amp;'\"</Root></Json>"),
         ]
         public void TestJsonToXml(string input, string expected)
         {
@@ -227,10 +232,15 @@ namespace Integround.Json.Tests
             "Invalid JSON. Unexpected EOF was detected. Expected '\"'."),
         InlineData(
              "{\"Prop\": \"\\u\" }",
-            "Invalid JSON. '\\u' should be followed by four hex digits. Unexpected EOF detected."),
+            "Invalid JSON. Unexpected EOF detected. Expected '\\u' to be followed by four hex digits."),
         InlineData(
              "{\"Prop\": \"\\uaaas\" }",
-            "Invalid JSON. '\\u' should be followed by four hex digits. Found 'aaas'.")
+            "Invalid JSON. Expected '\\u' to be followed by four hex digits, found 'aaas'."),
+
+        // Check invalid characters in property names:
+        InlineData(
+             "{\"Prop<\": \"Value\" }",
+            "Constructing the XML was unsuccessful: The '<' character, hexadecimal value 0x3C, cannot be included in a name.")
         ]
         public void TestJsonToXmlError(string input, string expectedError)
         {
