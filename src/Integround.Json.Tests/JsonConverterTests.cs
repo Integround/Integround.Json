@@ -65,7 +65,12 @@ namespace Integround.Json.Tests
             "<E3 json:DataType=\"Number\">13</E3>" +
             "<E4 json:DataType=\"Boolean\">true</E4>" +
             "</Root>",
-            "{\"E1\":\"Contents\",\"E2\":\"Contents2\",\"E3\":13,\"E4\":true}")
+            "{\"E1\":\"Contents\",\"E2\":\"Contents2\",\"E3\":13,\"E4\":true}"),
+
+        // Test charcter escaping:
+        InlineData(
+            "<Root attribute=\"&gt;&lt;&amp;'&quot;\"><Element>&gt;&lt;&amp;'\"</Element></Root>",
+            "{\"@attribute\":\"><&'\\\"\",\"Element\":\"><&'\\\"\"}"),
         ]
         public void TestXmlToJson(string input, string expected)
         {

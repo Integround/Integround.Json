@@ -411,7 +411,7 @@ namespace Integround.Json
                         if (propertyName.StartsWith("@"))
                         {
                             node = xml.CreateAttribute(propertyName.Substring(1));
-                            parent.Attributes.Append((XmlAttribute) node);
+                            parent.Attributes.Append((XmlAttribute)node);
                         }
                         else
                         {
@@ -451,19 +451,25 @@ namespace Integround.Json
             var attributes = node.Attributes.Cast<XmlNode>().ToList();
 
             // Get the format attributes:
-            var formatAttributes = attributes.Where(n =>
-                (n.NamespaceURI == JsonElementFormatAttributes.Namespace)).ToList();
-            var dataType = formatAttributes.Where(a => a.LocalName == JsonElementFormatAttributes.DataType).Select(a => a.Value).FirstOrDefault();
+            var formatAttributes = attributes
+                .Where(n => (n.NamespaceURI == JsonElementFormatAttributes.Namespace))
+                .ToList();
+            var dataType = formatAttributes
+                .Where(a => a.LocalName == JsonElementFormatAttributes.DataType)
+                .Select(a => a.Value)
+                .FirstOrDefault();
 
             // Get the data attributes & elements:
-            var children = attributes.Where(n =>
-                (n.Value != JsonElementFormatAttributes.Namespace) &&
-                (n.NamespaceURI != JsonElementFormatAttributes.Namespace)).ToList();
+            var children = attributes
+                .Where(n =>
+                    (n.Value != JsonElementFormatAttributes.Namespace) &&
+                    (n.NamespaceURI != JsonElementFormatAttributes.Namespace))
+                .ToList();
             children.AddRange(node.ChildNodes.Cast<XmlNode>());
 
             // Omit the element name if this is an array item or the root object:
             if (!isArray && !isRoot)
-                stringBuilder.AppendFormat("\"{0}\":", node.LocalName);
+                stringBuilder.AppendFormat("\"{0}\":", EscapeJsonString(node.LocalName));
 
             //***********************************
             // Write the element contents:
@@ -475,7 +481,8 @@ namespace Integround.Json
             if (!children.Any())
             {
                 var nullable =
-                    formatAttributes.Where(a => (a.LocalName == JsonElementFormatAttributes.Nullable))
+                    formatAttributes.Where(a =>
+                            (a.LocalName == JsonElementFormatAttributes.Nullable))
                         .Select(a => a.Value)
                         .FirstOrDefault();
 
@@ -499,7 +506,9 @@ namespace Integround.Json
                 && children.Skip(1).All(n => n.LocalName.Equals(children[0].LocalName)))
             {
                 WriteJsonElements(children, dataType, contentStringBuilder, true);
-                stringBuilder.AppendFormat("{{\"{0}\":[{1}]}}", children[0].LocalName, contentStringBuilder);
+                stringBuilder.AppendFormat("{{\"{0}\":[{1}]}}",
+                    EscapeJsonString(children[0].LocalName),
+                    contentStringBuilder);
             }
             else
             {
@@ -521,7 +530,9 @@ namespace Integround.Json
                 switch (children[i].NodeType)
                 {
                     case XmlNodeType.Attribute:
-                        stringBuilder.AppendFormat("\"@{0}\":\"{1}\"", children[i].LocalName, children[i].InnerText);
+                        stringBuilder.AppendFormat("\"@{0}\":\"{1}\"",
+                            EscapeJsonString(children[i].LocalName),
+                            EscapeJsonString(children[i].InnerText));
                         break;
                     case XmlNodeType.Text:
 
@@ -529,7 +540,7 @@ namespace Integround.Json
                             (dataType == JsonElementFormatAttributes.DataTypeNumber))
                             stringBuilder.Append(children[i].InnerText);
                         else
-                            stringBuilder.AppendFormat("\"{0}\"", children[i].InnerText);
+                            stringBuilder.AppendFormat("\"{0}\"", EscapeJsonString(children[i].InnerText));
                         break;
                     case XmlNodeType.Element:
                         WriteJsonObject(children[i], stringBuilder, isArray);
@@ -544,6 +555,18 @@ namespace Integround.Json
             }
         }
 
+        private static string EscapeJsonString(string input)
+        {
+            return input
+                .Replace("\\", "\\\\")
+                .Replace("\"", "\\\"")
+                .Replace("\b", "\\b")
+                .Replace("\f", "\\f")
+                .Replace("\n", "\\n")
+                .Replace("\r", "\\r")
+                .Replace("\t", "\\t")
+                .Replace("\b", "\\b");
+        }
         #endregion
     }
 }
