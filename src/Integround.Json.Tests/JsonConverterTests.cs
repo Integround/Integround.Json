@@ -125,7 +125,12 @@ namespace Integround.Json.Tests
             "<Json xmlns:json=\"http://www.integround.com/json\"><Prop><Element>Contents</Element></Prop><Prop>20</Prop><Prop json:DataType=\"Number\">30</Prop><Prop json:DataType=\"Boolean\">true</Prop></Json>"),
         InlineData(
             "[{\"Element\":\"Contents\"},{\"Element2\":\"Contents2\"}]",
-            "<Json><Value><Element>Contents</Element></Value><Value><Element2>Contents2</Element2></Value></Json>")
+            "<Json><Value><Element>Contents</Element></Value><Value><Element2>Contents2</Element2></Value></Json>"),
+
+        // Test special character escaping:
+        InlineData(
+            "{\"Prop\":[\"Content \\\"String\\\"\",\"Multiline\\nString\\tValue\",\"Others: \\b \\f \\r \\\\ \\/ \\u0054 \"]}",
+            "<Json><Prop>Content \"String\"</Prop><Prop>Multiline\nString\tValue</Prop><Prop>Others: &#x8; &#xC; \r \\ / T </Prop></Json>"),
         ]
         public void TestJsonToXml(string input, string expected)
         {
@@ -211,7 +216,21 @@ namespace Integround.Json.Tests
             "Invalid JSON. Unexpected EOF was detected. Expected '\"'."),
         InlineData(
             "[   {   ",
-            "Invalid JSON. Expected characters: '\"', found EOF.")
+            "Invalid JSON. Expected characters: '\"', found EOF."),
+
+        // Test invalid escaping:
+        InlineData(
+             "{\"Prop\": \"Value\\String\"}",
+            "Invalid JSON. \\S is not a known special character."),
+        InlineData(
+             "{\"Prop\": \"\\\"}",
+            "Invalid JSON. Unexpected EOF was detected. Expected '\"'."),
+        InlineData(
+             "{\"Prop\": \"\\u\" }",
+            "Invalid JSON. '\\u' should be followed by four hex digits. Unexpected EOF detected."),
+        InlineData(
+             "{\"Prop\": \"\\uaaas\" }",
+            "Invalid JSON. '\\u' should be followed by four hex digits. Found 'aaas'.")
         ]
         public void TestJsonToXmlError(string input, string expectedError)
         {

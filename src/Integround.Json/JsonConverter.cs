@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -92,14 +93,91 @@ namespace Integround.Json
 
         private static string ReadString(TextReader reader)
         {
-            var str = "";
+            var str = new StringBuilder();
             var nextCharValue = PeekNextChar(reader, false);
 
-            // Read characters until a ending quote or EOF is found:
-            while ((nextCharValue != -1) && (nextCharValue != '"'))
+            // If the first character was the escape character, read it and get the next char:
+            var escapeCharDetected = (nextCharValue == '\\');
+            if (escapeCharDetected)
             {
-                str += (char)reader.Read();
+                reader.Read();
+                nextCharValue = PeekNextChar(reader, false);
+            }
+
+            // Read characters until a ending quote or EOF is found:
+            while (nextCharValue != -1)
+            {
+                // If a quote is read and it's not escaped, stop reading any further:
+                if (!escapeCharDetected && (nextCharValue == '"'))
+                    break;
+
+                var character = (char)reader.Read();
+
+                if (escapeCharDetected)
+                {
+                    switch (character)
+                    {
+                        case 'b':
+                            str.Append('\b');
+                            break;
+                        case 'f':
+                            str.Append('\f');
+                            break;
+                        case 'n':
+                            str.Append('\n');
+                            break;
+                        case 'r':
+                            str.Append('\r');
+                            break;
+                        case 't':
+                            str.Append('\t');
+                            break;
+                        case '"':
+                            str.Append(character);
+                            break;
+                        case '\\':
+                            str.Append(character);
+                            break;
+                        case '/':
+                            str.Append(character);
+                            break;
+                        case 'u':
+                            // Read four hex characters:
+                            var hexValue = new char[4];
+                            if (reader.Read(hexValue, 0, 4) != 4)
+                            {
+                                throw new Exception("Invalid JSON. '\\u' should be followed by four hex digits. Unexpected EOF detected.");
+                            }
+                            
+                            // Convert the read hex string to an integer value:
+                            var hexValueString = new string(hexValue);
+                            int characterValue;
+                            if (!Int32.TryParse(hexValueString, NumberStyles.HexNumber, null, out characterValue))
+                            {
+                                throw new Exception(string.Format("Invalid JSON. '\\u' should be followed by four hex digits. Found '{0}'.", hexValueString));
+                            }
+
+                            str.Append((char)characterValue);
+                            break;
+                        default:
+                            throw new Exception(string.Format("Invalid JSON. \\{0} is not a known special character.", character));
+                    }
+                }
+                else
+                {
+                    str.Append(character);
+                }
+
+                // Move to the next character:
                 nextCharValue = reader.Peek();
+
+                // If the next character is the escape character, read it and get the next char:
+                escapeCharDetected = (nextCharValue == '\\');
+                if (escapeCharDetected)
+                {
+                    reader.Read();
+                    nextCharValue = PeekNextChar(reader, false);
+                }
             }
 
             // Check if end of file was detected:
@@ -108,7 +186,7 @@ namespace Integround.Json
                 throw new Exception("Invalid JSON. Unexpected EOF was detected. Expected '\"'.");
             }
 
-            return str;
+            return str.ToString();
         }
 
         private static JsonElementValue ReadValue(TextReader reader, char[] delimiters)
