@@ -294,11 +294,11 @@ namespace Integround.Json
                     xml.DocumentElement.SetAttribute(string.Format("xmlns:{0}", JsonElementFormatAttributes.Prefix), JsonElementFormatAttributes.Namespace);
 
                     // Add the data type attribute:
-                    var attribute = xml.CreateAttribute(JsonElementFormatAttributes.Prefix, JsonElementFormatAttributes.DataType, JsonElementFormatAttributes.Namespace);
+                    var attribute = CreateXmlAttribute(xml, node, JsonElementFormatAttributes.DataType,
+                        JsonElementFormatAttributes.Prefix, JsonElementFormatAttributes.Namespace);
                     attribute.Value = (value.Type == JsonElementType.Boolean)
                         ? JsonElementFormatAttributes.DataTypeBoolean
                         : JsonElementFormatAttributes.DataTypeNumber;
-                    node.Attributes.Append(attribute);
                 }
 
                 // Null values are not added to XML:
@@ -316,8 +316,8 @@ namespace Integround.Json
             }
 
             // Check if the json starts with an array:
-            var isArray = isRoot && nextChar == '[';
-            if (!isArray)
+            var isRootArray = isRoot && nextChar == '[';
+            if (!isRootArray)
             {
                 // Read the object-starting curly bracket:
                 ReadChar(reader, '{');
@@ -335,7 +335,7 @@ namespace Integround.Json
             {
                 // If the json value is an array, do not read the property name but use 'Value' instead
                 var propertyName = "Value";
-                if (!isArray)
+                if (!isRootArray)
                 {
                     // *********************************************
                     // Read the property name
@@ -372,6 +372,10 @@ namespace Integround.Json
                     nextChar = PeekNextChar(reader);
                     if (nextChar == ']')
                     {
+                        // Create an empty element:
+                        if (!isRootArray)
+                            CreateXmlElement(xml, parent, propertyName);
+
                         ReadChar(reader, ']');
                     }
                     else
@@ -380,17 +384,8 @@ namespace Integround.Json
                         // Read the array items:
                         while (true)
                         {
-                            XmlNode node;
-                            try
-                            {
-                                // Create the XML node & add it to the document:
-                                node = xml.CreateElement(propertyName);
-                                parent.AppendChild(node);
-                            }
-                            catch (Exception ex)
-                            {
-                                throw new Exception(string.Format("Constructing the XML was unsuccessful: {0}", ex.Message));
-                            }
+                            // Create the XML node & add it to the document:
+                            var node = CreateXmlElement(xml, parent, propertyName);
 
                             ReadSingleElement(reader, node, xml, arrayDelimiters);
 
@@ -403,26 +398,10 @@ namespace Integround.Json
                 }
                 else
                 {
-                    // Create a new xml node:
-                    XmlNode node;
-                    try
-                    {
-                        // Create the XML node & add it to the document:
-                        if (propertyName.StartsWith("@"))
-                        {
-                            node = xml.CreateAttribute(propertyName.Substring(1));
-                            parent.Attributes.Append((XmlAttribute)node);
-                        }
-                        else
-                        {
-                            node = xml.CreateElement(propertyName);
-                            parent.AppendChild(node);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new Exception(string.Format("Constructing the XML was unsuccessful: {0}", ex.Message));
-                    }
+                    // Create the XML node & add it to the document:
+                    var node = propertyName.StartsWith("@")
+                        ? CreateXmlAttribute(xml, parent, propertyName.Substring(1))
+                        : CreateXmlElement(xml, parent, propertyName);
 
                     // Read the node contents:
                     ReadSingleElement(reader, node, xml, new[] { ',', '}' });
@@ -431,7 +410,7 @@ namespace Integround.Json
                 // *********************************************
                 // Read the object ending character:
                 // *********************************************
-                if (isArray)
+                if (isRootArray)
                     break;
 
                 nextChar = ReadChar(reader, new[] { ',', '}' });
@@ -440,6 +419,41 @@ namespace Integround.Json
                     break;
                 }
             }
+        }
+
+        private static XmlNode CreateXmlElement(XmlDocument xml, XmlNode parent, string name)
+        {
+            XmlNode node;
+            try
+            {
+                node = xml.CreateElement(name);
+                parent.AppendChild(node);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(string.Format("Constructing the XML was unsuccessful: {0}", ex.Message));
+            }
+
+            return node;
+        }
+
+        private static XmlNode CreateXmlAttribute(XmlDocument xml, XmlNode parent, string name, string prefix = null, string namespaceUri = null)
+        {
+            XmlNode node;
+            try
+            {
+                node = namespaceUri != null
+                    ? xml.CreateAttribute(prefix, name, namespaceUri)
+                    : xml.CreateAttribute(name);
+
+                parent.Attributes.Append((XmlAttribute)node);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(string.Format("Constructing the XML was unsuccessful: {0}", ex.Message));
+            }
+
+            return node;
         }
 
         #endregion
