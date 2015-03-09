@@ -323,6 +323,11 @@ namespace Integround.Json
                 nextChar = PeekNextChar(reader);
                 if (nextChar == '}')
                 {
+                    // Add the data type attribute:
+                    var attribute = CreateXmlAttribute(xml, parent, JsonElementFormatAttributes.DataType,
+                        JsonElementFormatAttributes.Prefix, JsonElementFormatAttributes.Namespace);
+                    attribute.Value = JsonElementFormatAttributes.DataTypeObject;
+
                     ReadChar(reader, '}');
                     return;
                 }
@@ -523,8 +528,12 @@ namespace Integround.Json
                         .Select(a => a.Value)
                         .FirstOrDefault();
 
-                // If this was an array, write empty array:
-                if (string.Equals(dataType, JsonElementFormatAttributes.DataTypeArray))
+                // If this was an object, write empty object:
+                if (string.Equals(dataType, JsonElementFormatAttributes.DataTypeObject))
+                    stringBuilder.Append("{}");
+
+                // Else if this was an array, write empty array:
+                else if (string.Equals(dataType, JsonElementFormatAttributes.DataTypeArray))
                     stringBuilder.Append("[]");
 
                 // Else if json:Nullable != false (default = true), write the null value.

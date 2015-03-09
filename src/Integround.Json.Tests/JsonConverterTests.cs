@@ -11,6 +11,9 @@ namespace Integround.Json.Tests
 
         [Theory,
         InlineData(
+            "{}",
+            "<Json xmlns:json=\"http://www.integround.com/json\" json:DataType=\"Object\" />"),
+        InlineData(
             "{\"Root\":null}",
             "<Json><Root /></Json>"),
         InlineData(
@@ -37,8 +40,8 @@ namespace Integround.Json.Tests
             "{\"Prop\":[\"10\",20,null,\"null\",true,false,[]]}",
             "<Json xmlns:json=\"http://www.integround.com/json\"><Prop json:DataType=\"Array\"><Value>10</Value><Value json:DataType=\"Number\">20</Value><Value /><Value>null</Value><Value json:DataType=\"Boolean\">true</Value><Value json:DataType=\"Boolean\">false</Value><Value json:DataType=\"Array\" /></Prop></Json>"),
         InlineData(
-            "{\"Prop\":[{\"Element1\":\"10\",\"Element2\":null},\"20\",\"30\"]}",
-            "<Json xmlns:json=\"http://www.integround.com/json\"><Prop json:DataType=\"Array\"><Value><Element1>10</Element1><Element2 /></Value><Value>20</Value><Value>30</Value></Prop></Json>"),
+            "{\"Prop\":[{\"Element1\":\"10\",\"Element2\":null},{}]}",
+            "<Json xmlns:json=\"http://www.integround.com/json\"><Prop json:DataType=\"Array\"><Value><Element1>10</Element1><Element2 /></Value><Value json:DataType=\"Object\" /></Prop></Json>"),
 
         // Attribute tests:
         InlineData(
@@ -116,18 +119,10 @@ namespace Integround.Json.Tests
 
         [Theory,
 
-        // Test empty objects:
-        InlineData(
-            "{}",
-            "<Json />"),
-        InlineData(
-            "{\"Prop\":[{},\"10\",null,[]]}",
-            "<Json xmlns:json=\"http://www.integround.com/json\"><Prop json:DataType=\"Array\"><Value /><Value>10</Value><Value /><Value json:DataType=\"Array\" /></Prop></Json>"),
-
         // Test whitespaces:
         InlineData(
             " \t \n \r { \"Element1\" : \"  Contents  Contents  \" \t , \"Element2\" :  {  }  , \"Element3\" :  [  ] , \"Element4\" : [ \"10\" , \"20\" ] } ",
-            "<Json xmlns:json=\"http://www.integround.com/json\"><Element1>  Contents  Contents  </Element1><Element2 /><Element3 json:DataType=\"Array\" /><Element4 json:DataType=\"Array\"><Value>10</Value><Value>20</Value></Element4></Json>"),
+            "<Json xmlns:json=\"http://www.integround.com/json\"><Element1>  Contents  Contents  </Element1><Element2 json:DataType=\"Object\" /><Element3 json:DataType=\"Array\" /><Element4 json:DataType=\"Array\"><Value>10</Value><Value>20</Value></Element4></Json>"),
 
         // Test special character escaping:
         InlineData(

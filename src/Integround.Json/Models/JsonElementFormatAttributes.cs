@@ -8,6 +8,7 @@
         public const string Nullable = "Nullable";
         public const string DataType = "DataType";
         public const string DataTypeArray = "Array";
+        public const string DataTypeObject = "Object";
         public const string DataTypeNumber = "Number";
         public const string DataTypeBoolean = "Boolean";
     }
