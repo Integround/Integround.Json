@@ -367,31 +367,48 @@ namespace Integround.Json
 
                     // Check if the array is empty:
                     nextChar = PeekNextChar(reader);
-                    if (nextChar == ']')
-                    {
-                        // Create an empty element:
-                        if (!isRootArray)
-                            CreateXmlElement(xml, parent, propertyName);
 
-                        ReadChar(reader, ']');
+                    // If this is a root-level array and it is empty, add the data type attribute to the parent node:
+                    if ((nextChar == ']') && isRootArray)
+                    {
+                        var attribute = CreateXmlAttribute(xml, parent,
+                            JsonElementFormatAttributes.DataType,
+                            JsonElementFormatAttributes.Prefix,
+                            JsonElementFormatAttributes.Namespace);
+                        attribute.Value = JsonElementFormatAttributes.DataTypeArray;
                     }
                     else
                     {
                         var arrayDelimiters = new[] { ',', ']' };
+
+                        var node = parent;
+
+                        // If this a root-level array, create a new parent node:
+                        if (!isRootArray)
+                            node = CreateXmlElement(xml, parent, propertyName);
+
+                        var attribute = CreateXmlAttribute(xml, node,
+                            JsonElementFormatAttributes.DataType,
+                            JsonElementFormatAttributes.Prefix,
+                            JsonElementFormatAttributes.Namespace);
+                        attribute.Value = JsonElementFormatAttributes.DataTypeArray;
+
                         // Read the array items:
-                        while (true)
+                        while (nextChar != ']')
                         {
                             // Create the XML node & add it to the document:
-                            var node = CreateXmlElement(xml, parent, propertyName);
+                            var arrayNode = CreateXmlElement(xml, node, "Value");
 
-                            ReadSingleElement(reader, node, xml, arrayDelimiters);
+                            ReadSingleElement(reader, arrayNode, xml, arrayDelimiters);
 
-                            // Read the array item separator:
-                            nextChar = ReadChar(reader, arrayDelimiters);
-                            if (nextChar == ']')
-                                break;
+                            nextChar = PeekNextChar(reader);
+
+                            if (nextChar != ']')
+                                ReadChar(reader, arrayDelimiters);
                         }
                     }
+
+                    ReadChar(reader, ']');
                 }
                 else
                 {
@@ -506,8 +523,12 @@ namespace Integround.Json
                         .Select(a => a.Value)
                         .FirstOrDefault();
 
-                // If json:Nullable != false (default = true), write the null value.
-                if (!string.Equals(nullable, "false", StringComparison.InvariantCultureIgnoreCase))
+                // If this was an array, write empty array:
+                if (string.Equals(dataType, JsonElementFormatAttributes.DataTypeArray))
+                    stringBuilder.Append("[]");
+
+                // Else if json:Nullable != false (default = true), write the null value.
+                else if (!string.Equals(nullable, "false", StringComparison.InvariantCultureIgnoreCase))
                     stringBuilder.Append(JsonElementFormatAttributes.NullValue);
 
                 // Else if the data type is not Number/Boolean, write just the quotes.
