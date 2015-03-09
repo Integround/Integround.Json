@@ -10,46 +10,64 @@ namespace Integround.Json.Tests
         #region Test Json to Xml to Json conversion
 
         [Theory,
+        // Test empty elements:
         InlineData(
             "{}",
             "<Json xmlns:json=\"http://www.integround.com/json\" json:ValueType=\"Object\" />"),
         InlineData(
-            "{\"Root\":null}",
-            "<Json><Root /></Json>"),
-        InlineData(
-            "{\"Root\":\"Contents\"}",
-            "<Json><Root>Contents</Root></Json>"),
-        InlineData(
-            "{\"Element1\":\"string\",\"Element2\":23,\"Element3\":null,\"Element4\":true}",
-            "<Json xmlns:json=\"http://www.integround.com/json\"><Element1>string</Element1><Element2 json:ValueType=\"Number\">23</Element2><Element3 /><Element4 json:ValueType=\"Boolean\">true</Element4></Json>"),
-        InlineData(
-            "{\"Element1\":\"\",\"Element2\":null}",
-            "<Json><Element1></Element1><Element2 /></Json>"),
-
-        // Array tests:
-        InlineData(
             "[]",
             "<Json xmlns:json=\"http://www.integround.com/json\" json:ValueType=\"Array\" />"),
         InlineData(
-            "[10,\"20\"]",
-            "<Json xmlns:json=\"http://www.integround.com/json\" json:ValueType=\"Array\"><Value json:ValueType=\"Number\">10</Value><Value>20</Value></Json>"),
+            "{\"Prop1\":[],\"Prop2\":{}}",
+            "<Json xmlns:json=\"http://www.integround.com/json\"><Prop1 json:ValueType=\"Array\" /><Prop2 json:ValueType=\"Object\" /></Json>"),
         InlineData(
-            "{\"Prop\":[]}",
-            "<Json xmlns:json=\"http://www.integround.com/json\"><Prop json:ValueType=\"Array\" /></Json>"),
-        InlineData(
-            "{\"Prop\":[\"10\",20,null,\"null\",true,false,[]]}",
-            "<Json xmlns:json=\"http://www.integround.com/json\"><Prop json:ValueType=\"Array\"><Value>10</Value><Value json:ValueType=\"Number\">20</Value><Value /><Value>null</Value><Value json:ValueType=\"Boolean\">true</Value><Value json:ValueType=\"Boolean\">false</Value><Value json:ValueType=\"Array\" /></Prop></Json>"),
-        InlineData(
-            "{\"Prop\":[{\"Element1\":\"10\",\"Element2\":null},{}]}",
-            "<Json xmlns:json=\"http://www.integround.com/json\"><Prop json:ValueType=\"Array\"><Value><Element1>10</Element1><Element2 /></Value><Value json:ValueType=\"Object\" /></Prop></Json>"),
+            "[[],{}]",
+            "<Json xmlns:json=\"http://www.integround.com/json\" json:ValueType=\"Array\"><Value json:ValueType=\"Array\" /><Value json:ValueType=\"Object\" /></Json>"),
 
-        // Attribute tests:
+        // Test string values:
         InlineData(
-            "{\"@attribute\":\"huuhaa\"}",
-            "<Json attribute=\"huuhaa\" />"),
+            "{\"Prop1\":\"Contents1\",\"Prop2\":\"Contents2\",\"Prop3\":\"\"}",
+            "<Json><Prop1>Contents1</Prop1><Prop2>Contents2</Prop2><Prop3></Prop3></Json>"),
         InlineData(
-            "{\"@attribute\":\"huuhaa\",\"@attribute2\":\"huuhaa2\",\"Element1\":\"Contents\",\"Element2\":null}",
-            "<Json attribute=\"huuhaa\" attribute2=\"huuhaa2\"><Element1>Contents</Element1><Element2 /></Json>"),
+            "[\"Contents1\",\"Contents2\"]",
+             "<Json xmlns:json=\"http://www.integround.com/json\" json:ValueType=\"Array\"><Value>Contents1</Value><Value>Contents2</Value></Json>"),
+
+        // Test numbers:
+        InlineData(
+            "{\"P1\":0,\"P2\":10,\"P3\":-20,\"P4\":0.0,\"P5\":10.0,\"P6\":-20.0,\"P7\":0.01,\"P8\":10e10,\"P9\":-0.2e12,\"P10\":10E-10,\"P11\":-0.2E-12}",
+            "<Json xmlns:json=\"http://www.integround.com/json\">" +
+            "<P1 json:ValueType=\"Number\">0</P1>" +
+            "<P2 json:ValueType=\"Number\">10</P2>" +
+            "<P3 json:ValueType=\"Number\">-20</P3>" +
+            "<P4 json:ValueType=\"Number\">0.0</P4>" +
+            "<P5 json:ValueType=\"Number\">10.0</P5>" +
+            "<P6 json:ValueType=\"Number\">-20.0</P6>" +
+            "<P7 json:ValueType=\"Number\">0.01</P7>" +
+            "<P8 json:ValueType=\"Number\">10e10</P8>" +
+            "<P9 json:ValueType=\"Number\">-0.2e12</P9>" +
+            "<P10 json:ValueType=\"Number\">10E-10</P10>" +
+            "<P11 json:ValueType=\"Number\">-0.2E-12</P11>" + "</Json>"),
+
+        // Test boolean:
+        InlineData(
+            "{\"Prop1\":true,\"Prop2\":false}",
+            "<Json xmlns:json=\"http://www.integround.com/json\"><Prop1 json:ValueType=\"Boolean\">true</Prop1><Prop2 json:ValueType=\"Boolean\">false</Prop2></Json>"),
+        InlineData(
+            "[true,false]",
+             "<Json xmlns:json=\"http://www.integround.com/json\" json:ValueType=\"Array\"><Value json:ValueType=\"Boolean\">true</Value><Value json:ValueType=\"Boolean\">false</Value></Json>"),
+
+        // Test null:
+        InlineData(
+            "{\"Prop1\":null}",
+            "<Json><Prop1 /></Json>"),
+        InlineData(
+            "[null]",
+             "<Json xmlns:json=\"http://www.integround.com/json\" json:ValueType=\"Array\"><Value /></Json>"),
+
+        // Test attributes:
+        InlineData(
+            "{\"@attribute\":\"attr\",\"@attribute2\":\"\"}",
+            "<Json attribute=\"attr\" attribute2=\"\" />"),
 
         // Tests with namespaces:
         InlineData(
@@ -58,14 +76,13 @@ namespace Integround.Json.Tests
 
         // Test special character escaping:
         InlineData(
-            "{\"Prop\":[\"Content \\\"String\\\"\",\"Multiline\\nString\\tValue\",\"Others: \\b \\f \\r \\\\ \"]}",
-            "<Json xmlns:json=\"http://www.integround.com/json\"><Prop json:ValueType=\"Array\"><Value>Content \"String\"</Value><Value>Multiline\nString\tValue</Value><Value>Others: &#x8; &#xC; \r \\ </Value></Prop></Json>"),
+            "{\"Prop\":\" \\\" \\n \\t \\b \\f \\r \\\\ \"}",
+            "<Json><Prop> \" \n \t &#x8; &#xC; \r \\ </Prop></Json>"),
 
         // Test XML character escaping:
         InlineData(
-            "{\"@attribute\":\"><&'\\\"\",\"Root\":\"><&'\\\"\"}",
-            "<Json attribute=\"&gt;&lt;&amp;'&quot;\"><Root>&gt;&lt;&amp;'\"</Root></Json>"),
-
+            "{\"@attribute\":\" > < & ' \\\" \",\"Root\":\" > < & ' \\\" \"}",
+            "<Json attribute=\" &gt; &lt; &amp; ' &quot; \"><Root> &gt; &lt; &amp; ' \" </Root></Json>"),
         ]
         public void TestJsonToXmlToJson(string json, string xml)
         {
@@ -92,11 +109,11 @@ namespace Integround.Json.Tests
 
         // Test the nullable attribute:
         InlineData(
-            "<Root xmlns:json=\"http://www.integround.com/json\"><Element1/><Element2 json:Nullable=\"false\"/><Element3 json:Nullable=\"false\"></Element3></Root>",
-            "{\"Element1\":null,\"Element2\":\"\",\"Element3\":\"\"}"),
+            "<Root xmlns:json=\"http://www.integround.com/json\"><E1/><E2 json:Nullable=\"false\"/><E3 json:Nullable=\"false\"></E3><E4 json:Nullable=\"true\"/><E5 json:Nullable=\"true\"></E5></Root>",
+            "{\"E1\":null,\"E2\":\"\",\"E3\":\"\",\"E4\":null,\"E5\":null}"),
 
         // Array tests
-        // Elements with the same name should be converted to an array:
+            // Elements with the same name should be converted to an array:
         InlineData(
             "<Root><P1>10</P1><P1>20</P1><P1><E1>10</E1><E2/></P1></Root>",
             "{\"P1\":[\"10\",\"20\",{\"E1\":\"10\",\"E2\":null}]}"),
@@ -121,8 +138,8 @@ namespace Integround.Json.Tests
 
         // Test whitespaces:
         InlineData(
-            " \t \n \r { \"Element1\" : \"  Contents  Contents  \" \t , \"Element2\" :  {  }  , \"Element3\" :  [  ] , \"Element4\" : [ \"10\" , \"20\" ] } ",
-            "<Json xmlns:json=\"http://www.integround.com/json\"><Element1>  Contents  Contents  </Element1><Element2 json:ValueType=\"Object\" /><Element3 json:ValueType=\"Array\" /><Element4 json:ValueType=\"Array\"><Value>10</Value><Value>20</Value></Element4></Json>"),
+            " \t \n \r { \"E1\" : \"  Contents  Contents  \" \t , \"E2\" :  {  }  , \"E3\" :  [  ] , \"E4\" : [ \"10\" , \"20\" ] } ",
+            "<Json xmlns:json=\"http://www.integround.com/json\"><E1>  Contents  Contents  </E1><E2 json:ValueType=\"Object\" /><E3 json:ValueType=\"Array\" /><E4 json:ValueType=\"Array\"><Value>10</Value><Value>20</Value></E4></Json>"),
 
         // Test special character escaping:
         InlineData(
@@ -181,13 +198,24 @@ namespace Integround.Json.Tests
             "Invalid JSON. Unexpected EOF detected. Expected a boolean, numeric or null value."),
         InlineData(
             "{\"prop\": 123.4",
-            "Invalid JSON. Unexpected EOF detected. Expected a boolean, numeric or null value."),
+            "Invalid JSON. Expected characters: ',', '}', found EOF."),
         InlineData(
             "{\"prop\": abc}",
             "Invalid JSON. Expected a boolean, numeric or null value, found 'abc'."),
         InlineData(
             "{\"pr operty \": true}",
             "Invalid JSON. Property name cannot contain whitespace ('pr operty ')."),
+
+        // Test invalid number:
+        InlineData(
+            "{\"prop\":.0}",
+            "Invalid JSON. Expected a boolean, numeric or null value, found '.0'."),
+        InlineData(
+            "{\"prop\":0.}",
+            "Invalid JSON. Expected a boolean, numeric or null value, found '0.'."),
+        InlineData(
+            "{\"prop\":-.1}",
+            "Invalid JSON. Expected a boolean, numeric or null value, found '-.1'."),
 
         // Test invalid arrays:
         InlineData(
