@@ -290,9 +290,6 @@ namespace Integround.Json
                 if ((value.Type == JsonElementType.Boolean) ||
                     (value.Type == JsonElementType.Numeric))
                 {
-                    // Add the namespace declaration to the root element:
-                    xml.DocumentElement.SetAttribute(string.Format("xmlns:{0}", JsonElementFormatAttributes.Prefix), JsonElementFormatAttributes.Namespace);
-
                     // Add the data type attribute:
                     var attribute = CreateXmlAttribute(xml, node, JsonElementFormatAttributes.DataType,
                         JsonElementFormatAttributes.Prefix, JsonElementFormatAttributes.Namespace);
@@ -442,9 +439,18 @@ namespace Integround.Json
             XmlNode node;
             try
             {
-                node = namespaceUri != null
-                    ? xml.CreateAttribute(prefix, name, namespaceUri)
-                    : xml.CreateAttribute(name);
+                if (!string.IsNullOrWhiteSpace(prefix) && (namespaceUri != null))
+                {
+                    // Add the namespace declaration to the root element:
+                    xml.DocumentElement.SetAttribute(string.Format("xmlns:{0}",
+                        JsonElementFormatAttributes.Prefix),
+                        JsonElementFormatAttributes.Namespace);
+                    node = xml.CreateAttribute(prefix, name, namespaceUri);
+                }
+                else
+                {
+                    node = xml.CreateAttribute(name);
+                }
 
                 parent.Attributes.Append((XmlAttribute)node);
             }
