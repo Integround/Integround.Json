@@ -494,18 +494,18 @@ namespace Integround.Json
 
             // Get the format attributes:
             var formatAttributes = attributes
-                .Where(n => (n.NamespaceURI == JsonElementFormatAttributes.Namespace))
+                .Where(n => string.Equals(n.NamespaceURI, JsonElementFormatAttributes.Namespace))
                 .ToList();
             var valueType = formatAttributes
-                .Where(a => a.LocalName == JsonElementFormatAttributes.ValueType)
+                .Where(a => string.Equals(a.LocalName, JsonElementFormatAttributes.ValueType))
                 .Select(a => a.Value)
                 .FirstOrDefault();
 
             // Get the data attributes & elements:
             var children = attributes
                 .Where(n =>
-                    (n.Value != JsonElementFormatAttributes.Namespace) &&
-                    (n.NamespaceURI != JsonElementFormatAttributes.Namespace))
+                    !string.Equals(n.Value, JsonElementFormatAttributes.Namespace) &&
+                    !string.Equals(n.NamespaceURI, JsonElementFormatAttributes.Namespace))
                 .ToList();
             children.AddRange(node.ChildNodes.Cast<XmlNode>());
 
@@ -523,8 +523,7 @@ namespace Integround.Json
             if (!children.Any())
             {
                 var nullable =
-                    formatAttributes.Where(a =>
-                            (a.LocalName == JsonElementFormatAttributes.Nullable))
+                    formatAttributes.Where(a => string.Equals(a.LocalName, JsonElementFormatAttributes.Nullable))
                         .Select(a => a.Value)
                         .FirstOrDefault();
 
@@ -541,11 +540,13 @@ namespace Integround.Json
                     stringBuilder.Append(JsonElementFormatAttributes.NullValue);
 
                 // Else if the value type is not Number/Boolean, write just the quotes.
-                else if ((valueType != JsonElementFormatAttributes.ValueTypeNumber) && (valueType != JsonElementFormatAttributes.ValueTypeBoolean))
+                else if (!string.Equals(valueType, JsonElementFormatAttributes.ValueTypeNumber) &&
+                    !string.Equals(valueType, JsonElementFormatAttributes.ValueTypeBoolean))
                     stringBuilder.Append("\"\"");
             }
+
             // If all child elements are forced to an array:
-            else if (valueType == JsonElementFormatAttributes.ValueTypeArray)
+            else if (string.Equals(valueType, JsonElementFormatAttributes.ValueTypeArray))
             {
                 WriteJsonElements(children, valueType, contentStringBuilder, true);
                 stringBuilder.AppendFormat("[{0}]", contentStringBuilder);
@@ -586,8 +587,8 @@ namespace Integround.Json
                         break;
                     case XmlNodeType.Text:
 
-                        if ((valueType == JsonElementFormatAttributes.ValueTypeBoolean) ||
-                            (valueType == JsonElementFormatAttributes.ValueTypeNumber))
+                        if (string.Equals(valueType, JsonElementFormatAttributes.ValueTypeBoolean) ||
+                            string.Equals(valueType, JsonElementFormatAttributes.ValueTypeNumber))
                             stringBuilder.Append(children[i].InnerText);
                         else
                             stringBuilder.AppendFormat("\"{0}\"", EscapeJsonString(children[i].InnerText));
