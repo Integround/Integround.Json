@@ -213,7 +213,7 @@ namespace Integround.Json
                         string.Equals(valueString, bool.FalseString, StringComparison.InvariantCultureIgnoreCase))
                     {
                         value.Value = valueString;
-                        value.Type = JsonElementType.Boolean;
+                        value.Type = JsonValueType.Boolean;
                         break;
                     }
 
@@ -221,7 +221,7 @@ namespace Integround.Json
                     if (string.Equals(valueString, JsonElementFormatAttributes.NullValue, StringComparison.InvariantCultureIgnoreCase))
                     {
                         value.Value = valueString;
-                        value.Type = JsonElementType.Null;
+                        value.Type = JsonValueType.Null;
                         break;
                     }
                 }
@@ -234,19 +234,19 @@ namespace Integround.Json
             if (float.TryParse(valueString, out numericValue))
             {
                 value.Value = valueString;
-                value.Type = JsonElementType.Numeric;
+                value.Type = JsonValueType.Numeric;
             }
 
             // Check if end of file was detected.
             // If the value was numeric, the error is not raised here but from the missing delimiter.
-            if ((nextCharValue == -1) && (value.Type != JsonElementType.Numeric))
+            if ((nextCharValue == -1) && (value.Type != JsonValueType.Numeric))
             {
                 throw new Exception("Invalid JSON. Unexpected EOF detected. Expected a boolean, numeric or null value.");
             }
 
-            if ((value.Type != JsonElementType.Boolean) &&
-                (value.Type != JsonElementType.Null) &&
-                (value.Type != JsonElementType.Numeric))
+            if ((value.Type != JsonValueType.Boolean) &&
+                (value.Type != JsonValueType.Null) &&
+                (value.Type != JsonValueType.Numeric))
             {
                 throw new Exception(string.Format("Invalid JSON. Expected a boolean, numeric or null value, found '{0}'.", valueString));
             }
@@ -287,19 +287,19 @@ namespace Integround.Json
                 // Read the null, number or boolean value:
                 var value = ReadValue(reader, delimiters);
 
-                if ((value.Type == JsonElementType.Boolean) ||
-                    (value.Type == JsonElementType.Numeric))
+                if ((value.Type == JsonValueType.Boolean) ||
+                    (value.Type == JsonValueType.Numeric))
                 {
-                    // Add the data type attribute:
-                    var attribute = CreateXmlAttribute(xml, node, JsonElementFormatAttributes.DataType,
+                    // Add the value type attribute:
+                    var attribute = CreateXmlAttribute(xml, node, JsonElementFormatAttributes.ValueType,
                         JsonElementFormatAttributes.Prefix, JsonElementFormatAttributes.Namespace);
-                    attribute.Value = (value.Type == JsonElementType.Boolean)
-                        ? JsonElementFormatAttributes.DataTypeBoolean
-                        : JsonElementFormatAttributes.DataTypeNumber;
+                    attribute.Value = (value.Type == JsonValueType.Boolean)
+                        ? JsonElementFormatAttributes.ValueTypeBoolean
+                        : JsonElementFormatAttributes.ValueTypeNumber;
                 }
 
                 // Null values are not added to XML:
-                if (value.Type != JsonElementType.Null)
+                if (value.Type != JsonValueType.Null)
                     node.InnerText = value.Value;
             }
         }
@@ -323,10 +323,10 @@ namespace Integround.Json
                 nextChar = PeekNextChar(reader);
                 if (nextChar == '}')
                 {
-                    // Add the data type attribute:
-                    var attribute = CreateXmlAttribute(xml, parent, JsonElementFormatAttributes.DataType,
+                    // Add the value type attribute:
+                    var attribute = CreateXmlAttribute(xml, parent, JsonElementFormatAttributes.ValueType,
                         JsonElementFormatAttributes.Prefix, JsonElementFormatAttributes.Namespace);
-                    attribute.Value = JsonElementFormatAttributes.DataTypeObject;
+                    attribute.Value = JsonElementFormatAttributes.ValueTypeObject;
 
                     ReadChar(reader, '}');
                     return;
@@ -373,14 +373,14 @@ namespace Integround.Json
                     // Check if the array is empty:
                     nextChar = PeekNextChar(reader);
 
-                    // If this is a root-level array and it is empty, add the data type attribute to the parent node:
+                    // If this is a root-level array and it is empty, add the value type attribute to the parent node:
                     if ((nextChar == ']') && isRootArray)
                     {
                         var attribute = CreateXmlAttribute(xml, parent,
-                            JsonElementFormatAttributes.DataType,
+                            JsonElementFormatAttributes.ValueType,
                             JsonElementFormatAttributes.Prefix,
                             JsonElementFormatAttributes.Namespace);
-                        attribute.Value = JsonElementFormatAttributes.DataTypeArray;
+                        attribute.Value = JsonElementFormatAttributes.ValueTypeArray;
                     }
                     else
                     {
@@ -393,10 +393,10 @@ namespace Integround.Json
                             node = CreateXmlElement(xml, parent, propertyName);
 
                         var attribute = CreateXmlAttribute(xml, node,
-                            JsonElementFormatAttributes.DataType,
+                            JsonElementFormatAttributes.ValueType,
                             JsonElementFormatAttributes.Prefix,
                             JsonElementFormatAttributes.Namespace);
-                        attribute.Value = JsonElementFormatAttributes.DataTypeArray;
+                        attribute.Value = JsonElementFormatAttributes.ValueTypeArray;
 
                         // Read the array items:
                         while (nextChar != ']')
@@ -496,8 +496,8 @@ namespace Integround.Json
             var formatAttributes = attributes
                 .Where(n => (n.NamespaceURI == JsonElementFormatAttributes.Namespace))
                 .ToList();
-            var dataType = formatAttributes
-                .Where(a => a.LocalName == JsonElementFormatAttributes.DataType)
+            var valueType = formatAttributes
+                .Where(a => a.LocalName == JsonElementFormatAttributes.ValueType)
                 .Select(a => a.Value)
                 .FirstOrDefault();
 
@@ -529,25 +529,25 @@ namespace Integround.Json
                         .FirstOrDefault();
 
                 // If this was an object, write empty object:
-                if (string.Equals(dataType, JsonElementFormatAttributes.DataTypeObject))
+                if (string.Equals(valueType, JsonElementFormatAttributes.ValueTypeObject))
                     stringBuilder.Append("{}");
 
                 // Else if this was an array, write empty array:
-                else if (string.Equals(dataType, JsonElementFormatAttributes.DataTypeArray))
+                else if (string.Equals(valueType, JsonElementFormatAttributes.ValueTypeArray))
                     stringBuilder.Append("[]");
 
                 // Else if json:Nullable != false (default = true), write the null value.
                 else if (!string.Equals(nullable, "false", StringComparison.InvariantCultureIgnoreCase))
                     stringBuilder.Append(JsonElementFormatAttributes.NullValue);
 
-                // Else if the data type is not Number/Boolean, write just the quotes.
-                else if ((dataType != JsonElementFormatAttributes.DataTypeNumber) && (dataType != JsonElementFormatAttributes.DataTypeBoolean))
+                // Else if the value type is not Number/Boolean, write just the quotes.
+                else if ((valueType != JsonElementFormatAttributes.ValueTypeNumber) && (valueType != JsonElementFormatAttributes.ValueTypeBoolean))
                     stringBuilder.Append("\"\"");
             }
             // If all child elements are forced to an array:
-            else if (dataType == JsonElementFormatAttributes.DataTypeArray)
+            else if (valueType == JsonElementFormatAttributes.ValueTypeArray)
             {
-                WriteJsonElements(children, dataType, contentStringBuilder, true);
+                WriteJsonElements(children, valueType, contentStringBuilder, true);
                 stringBuilder.AppendFormat("[{0}]", contentStringBuilder);
             }
             // If the child elements have the same name, put the values into an array:
@@ -555,14 +555,14 @@ namespace Integround.Json
                 && children.All(n => n.NodeType == XmlNodeType.Element)
                 && children.Skip(1).All(n => n.LocalName.Equals(children[0].LocalName)))
             {
-                WriteJsonElements(children, dataType, contentStringBuilder, true);
+                WriteJsonElements(children, valueType, contentStringBuilder, true);
                 stringBuilder.AppendFormat("{{\"{0}\":[{1}]}}",
                     EscapeJsonString(children[0].LocalName),
                     contentStringBuilder);
             }
             else
             {
-                WriteJsonElements(children, dataType, contentStringBuilder, false);
+                WriteJsonElements(children, valueType, contentStringBuilder, false);
 
                 // If this was a complex element, add curly brackets:
                 if (children.Count > 1 ||
@@ -573,7 +573,7 @@ namespace Integround.Json
             }
         }
 
-        private static void WriteJsonElements(IReadOnlyList<XmlNode> children, string dataType, StringBuilder stringBuilder, bool isArray)
+        private static void WriteJsonElements(IReadOnlyList<XmlNode> children, string valueType, StringBuilder stringBuilder, bool isArray)
         {
             for (var i = 0; i < children.Count; i++)
             {
@@ -586,8 +586,8 @@ namespace Integround.Json
                         break;
                     case XmlNodeType.Text:
 
-                        if ((dataType == JsonElementFormatAttributes.DataTypeBoolean) ||
-                            (dataType == JsonElementFormatAttributes.DataTypeNumber))
+                        if ((valueType == JsonElementFormatAttributes.ValueTypeBoolean) ||
+                            (valueType == JsonElementFormatAttributes.ValueTypeNumber))
                             stringBuilder.Append(children[i].InnerText);
                         else
                             stringBuilder.AppendFormat("\"{0}\"", EscapeJsonString(children[i].InnerText));

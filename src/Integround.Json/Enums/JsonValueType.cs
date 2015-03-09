@@ -1,6 +1,6 @@
 ﻿namespace Integround.Json.Enums
 {
-    internal enum JsonElementType
+    internal enum JsonValueType
     {
         Unknown = 0,
         Null,
