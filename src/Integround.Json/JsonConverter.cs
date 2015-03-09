@@ -197,10 +197,10 @@ namespace Integround.Json
 
             // Read characters until an expected delimiter or EOF is found:
             while ((nextCharValue != -1) &&
-                !char.IsWhiteSpace((char)nextCharValue) &&
-                !delimiters.Contains((char)nextCharValue))
+                   !char.IsWhiteSpace((char) nextCharValue) &&
+                   !delimiters.Contains((char) nextCharValue))
             {
-                valueString += (char)reader.Read();
+                valueString += (char) reader.Read();
 
                 // If a boolean or null value was found, stop reading any further.
                 // This check should only be made if the lengths match, not after every character.
@@ -218,7 +218,8 @@ namespace Integround.Json
                     }
 
                     // If the string is null:
-                    if (string.Equals(valueString, JsonElementFormatAttributes.NullValue, StringComparison.InvariantCultureIgnoreCase))
+                    if (string.Equals(valueString, JsonElementFormatAttributes.NullValue,
+                        StringComparison.InvariantCultureIgnoreCase))
                     {
                         value.Value = valueString;
                         value.Type = JsonValueType.Null;
@@ -230,8 +231,12 @@ namespace Integround.Json
             }
 
             // Check if the string was numerical:
+            // Require the numeric string to start with a minus sign '-' or a digit and end with a digit.
             float numericValue;
-            if (float.TryParse(valueString, out numericValue))
+            if (float.TryParse(valueString, NumberStyles.Float, CultureInfo.InvariantCulture, out numericValue) &&
+                Char.IsDigit(valueString.Last()) &&
+                (Char.IsDigit(valueString.First()) ||
+                 (valueString.Length > 1) && (valueString[0] == '-') && char.IsDigit(valueString[1])))
             {
                 value.Value = valueString;
                 value.Type = JsonValueType.Numeric;
