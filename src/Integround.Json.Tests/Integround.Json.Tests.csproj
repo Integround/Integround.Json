@@ -49,9 +49,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Integround.Json\Integround.Json.csproj">
+    <ProjectReference Include="..\Integround.Json\Integround.Json.net45.csproj">
       <Project>{4b2915e9-5e85-424f-84b3-f3f4f0344fb1}</Project>
-      <Name>Integround.Json</Name>
+      <Name>Integround.Json.net45</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

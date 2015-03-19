@@ -71,11 +71,11 @@ namespace Integround.Json
         private static char ReadChar(TextReader reader, char[] allowedChars, bool ignoreWhiteSpace = true)
         {
             var nextCharValue = ReadNextChar(reader, ignoreWhiteSpace);
-            var allowedCharsString = string.Join(", ", allowedChars.Select(d => string.Format("'{0}'", d)));
 
             // Check if end of file was detected:
             if (nextCharValue == -1)
             {
+                var allowedCharsString = string.Join(", ", allowedChars.Select(d => string.Format("'{0}'", d)));
                 throw new Exception(string.Format("Invalid JSON. Expected characters: {0}, found EOF.",
                     allowedCharsString));
             }
@@ -84,6 +84,7 @@ namespace Integround.Json
             var nextChar = (char)nextCharValue;
             if (!allowedChars.Contains(nextChar))
             {
+                var allowedCharsString = string.Join(", ", allowedChars.Select(d => string.Format("'{0}'", d)));
                 throw new Exception(string.Format("Invalid JSON. Expected characters: {0}, found '{1}'.",
                     allowedCharsString, nextChar));
             }
@@ -192,15 +193,15 @@ namespace Integround.Json
         private static JsonElementValue ReadValue(TextReader reader, char[] delimiters)
         {
             var value = new JsonElementValue();
-            var valueString = string.Empty;
+            var valueString = new StringBuilder();
             var nextCharValue = PeekNextChar(reader);
 
             // Read characters until an expected delimiter or EOF is found:
             while ((nextCharValue != -1) &&
-                   !char.IsWhiteSpace((char) nextCharValue) &&
-                   !delimiters.Contains((char) nextCharValue))
+                   !char.IsWhiteSpace((char)nextCharValue) &&
+                   !delimiters.Contains((char)nextCharValue))
             {
-                valueString += (char) reader.Read();
+                valueString.Append((char)reader.Read());
 
                 // If a boolean or null value was found, stop reading any further.
                 // This check should only be made if the lengths match, not after every character.
@@ -208,20 +209,22 @@ namespace Integround.Json
                     (valueString.Length == bool.FalseString.Length) ||
                     (valueString.Length == JsonElementFormatAttributes.NullValue.Length))
                 {
+                    var valueToCheck = valueString.ToString();
+
                     // If the string is a boolean value:
-                    if (string.Equals(valueString, bool.TrueString, StringComparison.InvariantCultureIgnoreCase) ||
-                        string.Equals(valueString, bool.FalseString, StringComparison.InvariantCultureIgnoreCase))
+                    if (string.Equals(valueToCheck, bool.TrueString, StringComparison.InvariantCultureIgnoreCase) ||
+                        string.Equals(valueToCheck, bool.FalseString, StringComparison.InvariantCultureIgnoreCase))
                     {
-                        value.Value = valueString;
+                        value.Value = valueToCheck;
                         value.Type = JsonValueType.Boolean;
                         break;
                     }
 
                     // If the string is null:
-                    if (string.Equals(valueString, JsonElementFormatAttributes.NullValue,
+                    if (string.Equals(valueToCheck, JsonElementFormatAttributes.NullValue,
                         StringComparison.InvariantCultureIgnoreCase))
                     {
-                        value.Value = valueString;
+                        value.Value = valueToCheck;
                         value.Type = JsonValueType.Null;
                         break;
                     }
@@ -233,12 +236,13 @@ namespace Integround.Json
             // Check if the string was numerical:
             // Require the numeric string to start with a minus sign '-' or a digit and end with a digit.
             float numericValue;
-            if (float.TryParse(valueString, NumberStyles.Float, CultureInfo.InvariantCulture, out numericValue) &&
-                Char.IsDigit(valueString.Last()) &&
-                (Char.IsDigit(valueString.First()) ||
+            var elementValue = valueString.ToString();
+            if (float.TryParse(elementValue, NumberStyles.Float, CultureInfo.InvariantCulture, out numericValue) &&
+                Char.IsDigit(elementValue.Last()) &&
+                (Char.IsDigit(elementValue.First()) ||
                  (valueString.Length > 1) && (valueString[0] == '-') && char.IsDigit(valueString[1])))
             {
-                value.Value = valueString;
+                value.Value = elementValue;
                 value.Type = JsonValueType.Numeric;
             }
 
