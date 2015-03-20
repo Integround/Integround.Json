@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <metadata>
+        <id>Integround.Json</id>
+        <version>1.0.1</version>
+        <title>Integround.Json</title>
+        <authors>Integround</authors>
+        <licenseUrl>https://raw.githubusercontent.com/Integround/Integround.Json/master/LICENSE</licenseUrl>
+        <projectUrl>https://github.com/Integround/Integround.Json</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>Integround.Json is a free XML ↔ JSON converter library for .Net projects.</description>
+        <summary>Integround.Json is a free XML ↔ JSON converter library for .Net projects.</summary>
+        <language>en-US</language>
+        <tags>json xml</tags>
+    </metadata>
+    <files>
+        <file src="Integround.Json\bin\Release\Integround.Json.dll" target="lib\net45\Integround.Json.dll" />
+    </files>
+</package>
